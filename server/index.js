@@ -55,6 +55,13 @@ app.get("/api/list", (req, res) => {
   });
 });
 
+app.get("/api/config", (req, res) => {
+  res.json({
+    host: process.env.SFTP_HOST,
+    port: process.env.SFTP_PORT,
+  });
+});
+
 // ران روی همه اینترفیس‌ها
 app.listen(5000, "0.0.0.0", () =>
   console.log("🚀 Express server running on port 5000")

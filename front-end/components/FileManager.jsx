@@ -1,73 +1,62 @@
 "use client";
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { ApiProvider, useApi } from "../context/apiContext";
+import FileUploader from "./FileUploader";
+import FileList from "./FileList";
 
-const API_BASE = "http://192.168.1.107:5000"; // IP لینوکس
-
-export default function FileManager() {
-  const [file, setFile] = useState(null);
+function FileManagerContent() {
+  const apiBase = useApi();
   const [files, setFiles] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
   const fetchList = async () => {
+    if (!apiBase) return;
     try {
-      const res = await axios.get(`${API_BASE}/api/list`);
+      const res = await axios.get(`${apiBase}/api/list`);
       setFiles(res.data || []);
     } catch (err) {
-      setMessage("❌ خطا در دریافت لیست فایل‌ها");
       console.error(err);
+      setMessage("❌ خطا در دریافت لیست فایل‌ها");
     }
   };
 
   useEffect(() => {
+    if (!apiBase) return; // هنوز آماده نیست
     fetchList();
-  }, []);
-
-  const upload = async () => {
-    if (!file) return setMessage("فایل انتخاب نشده");
-    setLoading(true);
-    setMessage("");
-
-    const fd = new FormData();
-    fd.append("file", file);
-
-    try {
-      const res = await axios.post(`${API_BASE}/api/upload`, fd, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      setMessage(res.data.message);
-      fetchList();
-    } catch (err) {
-      setMessage("❌ خطا در آپلود فایل");
-      console.error(err);
-    }
-    setLoading(false);
-  };
+  }, [apiBase]);
 
   return (
-    <div style={{ padding: 20 }}>
-      <h2>📂 NodeXfer</h2>
-      <input type="file" onChange={(e) => setFile(e.target.files[0])} />
-      <button onClick={upload} disabled={loading}>
-        {loading ? "درحال ارسال..." : "ارسال فایل"}
-      </button>
-      {message && <p>{message}</p>}
+    <div className="max-w-2xl mx-auto p-6 font-sans">
+      <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+        📂 NodeXfer
+      </h2>
 
-      <h3>فایل‌های سرور</h3>
-      <ul>
-        {files.map((f) => (
-          <li key={f.name}>
-            {f.name} — {(f.size / 1024).toFixed(1)} KB
-            <a
-              style={{ marginLeft: 10 }}
-              href={`${API_BASE}/api/download/${encodeURIComponent(f.name)}`}
-            >
-              دانلود
-            </a>
-          </li>
-        ))}
-      </ul>
+      <FileUploader
+        onUploadComplete={(msg) => {
+          setMessage(msg);
+          fetchList();
+        }}
+      />
+      {message && (
+        <p
+          className={`my-2 ${
+            message.startsWith("❌") ? "text-red-500" : "text-green-500"
+          } font-medium`}
+        ></p>
+      )}
+
+      <h3 className="text-xl font-semibold mt-6 mb-2">فایل‌های سرور</h3>
+      <FileList files={files} />
     </div>
+  );
+}
+
+// Wrapper با ApiProvider
+export default function FileManager() {
+  return (
+    <ApiProvider>
+      <FileManagerContent />
+    </ApiProvider>
   );
 }
