@@ -13,7 +13,7 @@ const NEXTJS_ORIGIN = "http://192.168.1.107:3000";
 app.use(
   cors({
     origin: "*",
-    methods: ["GET", "POST"],
+    methods: ["GET", "POST", "DELETE", "PUT", "OPTIONS"],
   })
 );
 
@@ -52,6 +52,20 @@ app.get("/api/list", (req, res) => {
     });
 
     res.json(list);
+  });
+});
+
+app.delete("/api/delete/:filename", (req, res) => {
+  const { filename } = req.params;
+  const filePath = path.join(__dirname, "uploads", filename);
+
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: "❌ فایل یافت نشد" });
+  }
+
+  fs.unlink(filePath, (err) => {
+    if (err) return res.status(500).json({ error: "❌ خطا در حذف فایل" });
+    res.json({ message: `✅ فایل ${filename} حذف شد` }); // body ارسال می‌کنه
   });
 });
 
