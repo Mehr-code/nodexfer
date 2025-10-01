@@ -4,75 +4,58 @@ const multer = require("multer");
 const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
-const SftpClient = require("ssh2-sftp-client");
 
 const app = express();
-app.use(cors());
 
-const upload = multer({ dest: path.join(__dirname, "uploads") });
+// جایگزین IP لینوکس خودت
+const NEXTJS_ORIGIN = "http://192.168.1.107:3000";
 
-const sftpConfig = {
-  host: process.env.SFTP_HOST,
-  port: process.env.SFTP_PORT || 22,
-  username: process.env.SFTP_USER,
-  password: process.env.SFTP_PASS,
-};
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST"],
+  })
+);
 
-// آپلود فایل به لینوکس
-app.post("/api/upload", upload.single("file"), async (req, res) => {
-  const sftp = new SftpClient();
-  try {
-    await sftp.connect(sftpConfig);
-    const remotePath = `/home/${sftpConfig.username}/${req.file.originalname}`;
-    await sftp.put(req.file.path, remotePath);
-    await sftp.end();
+const uploadDir = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
+const upload = multer({ dest: uploadDir });
 
-    // پاک کردن فایل موقت
-    fs.unlinkSync(req.file.path);
+// آپلود فایل
+app.post("/api/upload", upload.single("file"), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "فایل انتخاب نشده" });
 
+  const destPath = path.join(__dirname, "uploads", req.file.originalname);
+  fs.rename(req.file.path, destPath, (err) => {
+    if (err) return res.status(500).json({ error: "❌ خطا در ذخیره فایل" });
     res.json({ message: "✅ فایل منتقل شد", filename: req.file.originalname });
-  } catch (err) {
-    console.error(err);
-    fs.unlinkSync(req.file.path);
-    res.status(500).json({ error: "❌ خطا در انتقال فایل" });
-  }
+  });
 });
 
-// دانلود فایل از لینوکس
-app.get("/api/download/:filename", async (req, res) => {
-  const sftp = new SftpClient();
-  try {
-    await sftp.connect(sftpConfig);
-    const remotePath = `/home/${sftpConfig.username}/${req.params.filename}`;
-    const stream = await sftp.get(remotePath);
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="${req.params.filename}"`
-    );
-    stream.pipe(res);
-    stream.on("close", async () => await sftp.end());
-    stream.on("error", async () => {
-      await sftp.end();
-      res.status(500).end();
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "❌ دانلود ناموفق بود" });
-  }
+// دانلود فایل
+app.get("/api/download/:filename", (req, res) => {
+  const filePath = path.join(__dirname, "uploads", req.params.filename);
+  if (!fs.existsSync(filePath))
+    return res.status(404).json({ error: "فایل یافت نشد" });
+
+  res.download(filePath, req.params.filename);
 });
 
 // لیست فایل‌ها
-app.get("/api/list", async (req, res) => {
-  const sftp = new SftpClient();
-  try {
-    await sftp.connect(sftpConfig);
-    const list = await sftp.list(`/home/${sftpConfig.username}`);
-    await sftp.end();
-    res.json(list.map((f) => ({ name: f.name, size: f.size })));
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "❌ خطا در لیست فایل‌ها" });
-  }
+app.get("/api/list", (req, res) => {
+  fs.readdir(path.join(__dirname, "uploads"), (err, files) => {
+    if (err) return res.status(500).json({ error: "❌ خطا در لیست فایل‌ها" });
+
+    const list = files.map((f) => {
+      const stats = fs.statSync(path.join(__dirname, "uploads", f));
+      return { name: f, size: stats.size };
+    });
+
+    res.json(list);
+  });
 });
 
-app.listen(5000, () => console.log("🚀 Express server running on port 5000"));
+// ران روی همه اینترفیس‌ها
+app.listen(5000, "0.0.0.0", () =>
+  console.log("🚀 Express server running on port 5000")
+);
