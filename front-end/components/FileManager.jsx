@@ -22,32 +22,49 @@ function FileManagerContent() {
   };
 
   useEffect(() => {
-    if (!apiBase) return; // هنوز آماده نیست
+    if (!apiBase) return;
     fetchList();
   }, [apiBase]);
 
+  const handleDelete = (fileName) => {
+    setFiles((prev) => prev.filter((f) => f.name !== fileName));
+    setMessage(`✅ فایل "${fileName}" حذف شد`);
+  };
   return (
     <div className="max-w-2xl mx-auto p-6 font-sans">
-      <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-        📂 NodeXfer
-      </h2>
+      {/* Card اصلی */}
+      <div className="bg-white border border-gray-200 rounded-2xl shadow-lg p-6">
+        <h2 className="text-2xl font-bold mb-4 flex items-center gap-2 text-blue-700">
+          📂 NodeXfer
+        </h2>
 
-      <FileUploader
-        onUploadComplete={(msg) => {
-          setMessage(msg);
-          fetchList();
-        }}
-      />
-      {message && (
-        <p
-          className={`my-2 ${
-            message.startsWith("❌") ? "text-red-500" : "text-green-500"
-          } font-medium`}
-        ></p>
-      )}
+        {/* آپلودر */}
+        <FileUploader
+          onUploadComplete={(msg) => {
+            setMessage(msg);
+            fetchList();
+          }}
+        />
 
-      <h3 className="text-xl font-semibold mt-6 mb-2">فایل‌های سرور</h3>
-      <FileList files={files} />
+        {/* پیام وضعیت */}
+        {message && (
+          <p
+            className={`my-3 text-sm px-3 py-2 rounded-lg ${
+              message.startsWith("❌")
+                ? "bg-red-100 text-red-600 border border-red-300"
+                : "bg-green-100 text-green-600 border border-green-300"
+            }`}
+          >
+            {message}
+          </p>
+        )}
+
+        {/* لیست فایل‌ها */}
+        <h3 className="text-lg font-semibold mt-6 mb-3 text-gray-700">
+          📑 فایل‌های سرور
+        </h3>
+        <FileList files={files} onDelete={handleDelete} />
+      </div>
     </div>
   );
 }
