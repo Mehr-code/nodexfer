@@ -3,12 +3,15 @@ import { useApi } from "../context/apiContext";
 import axios from "axios";
 
 export default function FileList({ files, onDelete }) {
-  const apiBase = useApi();
+  const { apiBase } = useApi();
+  if (!apiBase) return;
+  const parsed = new URL(apiBase);
+  const url = `${parsed.protocol}//${parsed.hostname}:5000`;
 
   if (!files.length)
     return (
       <p className="text-gray-400 italic text-center py-6">
-        📂 هنوز هیچ فایلی آپلود نشده است.
+        هنوز هیچ فایلی آپلود نشده است.📂
       </p>
     );
 
@@ -18,9 +21,7 @@ export default function FileList({ files, onDelete }) {
       return;
 
     try {
-      await axios.delete(
-        `${apiBase}/api/delete/${encodeURIComponent(fileName)}`
-      );
+      await axios.delete(`${url}/api/delete/${encodeURIComponent(fileName)}`);
       onDelete(fileName);
     } catch (err) {
       console.error(err);
@@ -36,7 +37,7 @@ export default function FileList({ files, onDelete }) {
           className="flex justify-between items-center bg-white border border-gray-200 rounded-xl shadow-sm px-4 py-3 hover:shadow-md transition-all duration-300"
         >
           <div className="flex flex-col">
-            <span className="font-medium text-gray-800 truncate max-w-xs">
+            <span className="font-medium text-gray-800 truncate max-w-44 md:max-w-80">
               {f.name}
             </span>
             <span className="text-xs text-gray-500">
@@ -46,15 +47,15 @@ export default function FileList({ files, onDelete }) {
           <div className="flex gap-2">
             <a
               className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-all duration-300 shadow"
-              href={`${apiBase}/api/download/${encodeURIComponent(f.name)}`}
+              href={`${url}/api/download/${encodeURIComponent(f.name)}`}
             >
-              ⬇ دانلود
+              دانلود ⬇
             </a>
             <button
               onClick={() => handleDelete(f.name)}
               className="px-4 py-2 rounded-lg text-sm font-medium bg-red-500 text-white hover:bg-red-600 transition-all duration-300 shadow"
             >
-              🗑 حذف
+              حذف 🗑
             </button>
           </div>
         </li>

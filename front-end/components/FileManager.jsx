@@ -4,16 +4,19 @@ import axios from "axios";
 import { ApiProvider, useApi } from "../context/apiContext";
 import FileUploader from "./FileUploader";
 import FileList from "./FileList";
+import ApiInfo from "./ApiInfo";
 
 function FileManagerContent() {
-  const apiBase = useApi();
+  const { apiBase } = useApi();
   const [files, setFiles] = useState([]);
   const [message, setMessage] = useState("");
 
   const fetchList = async () => {
     if (!apiBase) return;
+    const parsed = new URL(apiBase);
+    const url = `${parsed.protocol}//${parsed.hostname}:5000`;
     try {
-      const res = await axios.get(`${apiBase}/api/list`);
+      const res = await axios.get(`${url}/api/list`);
       setFiles(res.data || []);
     } catch (err) {
       console.error(err);
@@ -73,6 +76,7 @@ function FileManagerContent() {
 export default function FileManager() {
   return (
     <ApiProvider>
+      <ApiInfo />
       <FileManagerContent />
     </ApiProvider>
   );

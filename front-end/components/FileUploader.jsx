@@ -5,13 +5,17 @@ import { useApi } from "../context/apiContext";
 import { Upload, Loader2 } from "lucide-react";
 
 export default function FileUploader({ onUploadComplete }) {
-  const apiBase = useApi();
+  const { apiBase } = useApi();
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  if (!apiBase) return;
+  const parsed = new URL(apiBase);
+  const url = `${parsed.protocol}//${parsed.hostname}:5000`;
+
   const handleUpload = async () => {
     if (!file) return onUploadComplete("❌ فایل انتخاب نشده");
-    if (!apiBase) return onUploadComplete("❌ API هنوز آماده نیست");
+    if (!url) return onUploadComplete("❌ API هنوز آماده نیست");
 
     setLoading(true);
     onUploadComplete("");
@@ -20,7 +24,7 @@ export default function FileUploader({ onUploadComplete }) {
     fd.append("file", file);
 
     try {
-      const res = await axios.post(`${apiBase}/api/upload`, fd, {
+      const res = await axios.post(`${url}/api/upload`, fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       onUploadComplete(res.data.message);
@@ -34,7 +38,7 @@ export default function FileUploader({ onUploadComplete }) {
   };
 
   return (
-    <div className="flex flex-col sm:flex-row items-center gap-3 p-4 border-2 border-dashed border-gray-300 rounded-2xl shadow-sm bg-white hover:border-blue-500 transition-all duration-300">
+    <div className="flex flex-col sm:flex-row items-center gap-3 p-4 border-2 border-dashed border-gray-300 rounded-2xl shadow-sm bg-white hover:border-blue-500 transition-all duration-300 justify-between">
       <label className="flex flex-col items-center justify-center w-full sm:w-auto cursor-pointer px-6 py-4 bg-gray-50 rounded-xl border border-gray-200 hover:bg-gray-100 transition">
         <Upload className="w-6 h-6 text-blue-600 mb-1" />
         <span className="text-sm text-gray-600">
